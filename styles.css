@@ -24,6 +24,64 @@ body {
   color: var(--ink);
 }
 
+.invite-gate {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(255, 226, 103, 0.75), transparent 22rem),
+    linear-gradient(160deg, #fff7e3 0%, #dff5ff 48%, #b8e9ff 100%);
+}
+
+.invite-card {
+  width: min(100%, 390px);
+  padding: 24px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 48px rgba(14, 91, 143, 0.2);
+}
+
+.invite-copy {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.invite-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.invite-form input {
+  width: 100%;
+  min-height: 54px;
+  border: 2px solid rgba(35, 50, 65, 0.14);
+  border-radius: 16px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 850;
+}
+
+.invite-form button {
+  min-height: 54px;
+  border-radius: 16px;
+  background: var(--orange);
+  color: #27160c;
+  font-weight: 950;
+}
+
+.invite-status {
+  min-height: 22px;
+  margin-top: 12px;
+  color: #22313d;
+  font-weight: 850;
+}
+
 button {
   border: 0;
   font: inherit;

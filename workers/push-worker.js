@@ -17,6 +17,10 @@ export default {
         return json({ publicKey: env.VAPID_PUBLIC_KEY }, env);
       }
 
+      if (request.method === 'POST' && url.pathname === '/validate-invite') {
+        return handleValidateInvite(request, env);
+      }
+
       if (request.method === 'POST' && url.pathname === '/subscribe') {
         return handleSubscribe(request, env);
       }
@@ -40,8 +44,16 @@ export default {
   }
 };
 
+async function handleValidateInvite(request, env) {
+  const body = await request.json();
+  return json({ ok: isValidInvite(body.inviteCode, env) }, env);
+}
+
 async function handleSubscribe(request, env) {
   const body = await request.json();
+  if (!isValidInvite(body.inviteCode, env)) {
+    return json({ error: 'invalid invite code' }, env, 403);
+  }
   validateSubscription(body.subscription);
 
   const key = await subscriptionKey(body.subscription.endpoint);
@@ -60,6 +72,10 @@ async function handleSubscribe(request, env) {
 
   await env.WATER_REMINDERS.put(key, JSON.stringify(record));
   return json({ ok: true }, env);
+}
+
+function isValidInvite(inviteCode, env) {
+  return Boolean(env.INVITE_CODE) && String(inviteCode || '').trim() === env.INVITE_CODE;
 }
 
 async function handleProgress(request, env) {

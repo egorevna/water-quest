@@ -10,8 +10,10 @@ import {
 import {
   disableReminders,
   enableReminders,
+  hasSavedInviteCode,
   getReminderStatus,
-  syncReminderProgress
+  syncReminderProgress,
+  validateInviteCode
 } from './src/push-client.js';
 
 const STORAGE_KEY = 'water-quest-state-v1';
@@ -20,6 +22,10 @@ const todayKey = toDateKey(new Date());
 let state = loadState();
 
 const elements = {
+  inviteGate: document.querySelector('#invite-gate'),
+  inviteForm: document.querySelector('#invite-form'),
+  inviteCode: document.querySelector('#invite-code'),
+  inviteStatus: document.querySelector('#invite-status'),
   rewardBanner: document.querySelector('#reward-banner'),
   waterLevel: document.querySelector('#water-level'),
   todayPercent: document.querySelector('#today-percent'),
@@ -38,6 +44,21 @@ const elements = {
   statsPanel: document.querySelector('#stats-panel'),
   daysGrid: document.querySelector('#days-grid')
 };
+
+elements.inviteForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  elements.inviteStatus.textContent = 'Проверяю код...';
+  try {
+    const result = await validateInviteCode(elements.inviteCode.value);
+    elements.inviteStatus.textContent = result.message;
+    if (result.ok) {
+      elements.inviteGate.classList.add('hidden');
+      await updateReminderStatus();
+    }
+  } catch (error) {
+    elements.inviteStatus.textContent = `Не получилось проверить код: ${error.message}`;
+  }
+});
 
 document.querySelectorAll('[data-amount]').forEach((button) => {
   button.addEventListener('click', () => {
@@ -82,6 +103,7 @@ elements.disableReminders.addEventListener('click', async () => {
 render();
 registerServiceWorker();
 updateReminderStatus();
+renderInviteGate();
 
 function render() {
   const summary = buildSummary(state, todayKey);
@@ -155,6 +177,10 @@ async function syncProgress() {
 
 async function updateReminderStatus(message) {
   elements.reminderStatus.textContent = message || await getReminderStatus();
+}
+
+function renderInviteGate() {
+  elements.inviteGate.classList.toggle('hidden', hasSavedInviteCode());
 }
 
 function loadState() {

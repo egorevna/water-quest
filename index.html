@@ -14,6 +14,19 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <section class="invite-gate" id="invite-gate" aria-label="Вход по инвайту">
+      <div class="invite-card">
+        <p class="eyebrow">Water Quest</p>
+        <h1>Инвайт</h1>
+        <p class="invite-copy">Это приватная версия приложения. Введи код, чтобы продолжить.</p>
+        <form id="invite-form" class="invite-form">
+          <input id="invite-code" name="invite-code" type="password" autocomplete="one-time-code" placeholder="Код доступа" required>
+          <button type="submit">Войти</button>
+        </form>
+        <p class="invite-status" id="invite-status" aria-live="polite"></p>
+      </div>
+    </section>
+
     <main class="app-shell">
       <section class="hero-panel" aria-labelledby="quest-title">
         <header class="top-bar">

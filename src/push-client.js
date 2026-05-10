@@ -1,4 +1,5 @@
 import { PUSH_WORKER_URL } from './push-config.js';
+import { INVITE_STORAGE_KEY, isInviteCodePresent, normalizeInviteCode } from './invite-core.js';
 
 const PUSH_ENDPOINT_KEY = 'water-quest-push-endpoint-v1';
 
@@ -8,7 +9,35 @@ export function getPushAvailability() {
   return { supported, standalone, configured: Boolean(PUSH_WORKER_URL) };
 }
 
+export async function validateInviteCode(inviteCode) {
+  const normalized = normalizeInviteCode(inviteCode);
+  if (!isInviteCodePresent(normalized)) {
+    return { ok: false, message: 'Инвайт-код слишком короткий.' };
+  }
+
+  const result = await postJson('/validate-invite', { inviteCode: normalized });
+  if (!result.ok) {
+    return { ok: false, message: 'Инвайт-код не подошёл.' };
+  }
+
+  localStorage.setItem(INVITE_STORAGE_KEY, normalized);
+  return { ok: true, message: 'Инвайт принят.' };
+}
+
+export function getSavedInviteCode() {
+  return localStorage.getItem(INVITE_STORAGE_KEY) || '';
+}
+
+export function hasSavedInviteCode() {
+  return isInviteCodePresent(getSavedInviteCode());
+}
+
 export async function enableReminders(progress) {
+  const inviteCode = getSavedInviteCode();
+  if (!isInviteCodePresent(inviteCode)) {
+    return { ok: false, message: 'Сначала введи инвайт-код.' };
+  }
+
   const availability = getPushAvailability();
   if (!availability.configured) {
     return { ok: false, message: 'Worker URL пока не настроен.' };
@@ -33,6 +62,7 @@ export async function enableReminders(progress) {
   });
 
   await postJson('/subscribe', {
+    inviteCode,
     subscription: subscription.toJSON(),
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     progress
