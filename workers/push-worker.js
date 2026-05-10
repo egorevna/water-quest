@@ -22,6 +22,10 @@ export default {
         return handleDebug(env);
       }
 
+      if (request.method === 'GET' && url.pathname === '/send-test') {
+        return handleSendTest(env);
+      }
+
       if (request.method === 'POST' && url.pathname === '/validate-invite') {
         return handleValidateInvite(request, env);
       }
@@ -139,24 +143,84 @@ async function handleUnsubscribe(request, env) {
 
 async function sendScheduledReminders(env, date) {
   let cursor;
+  let totalKeys = 0;
+  let totalSent = 0;
+  await writeDebug(env, { type: 'scheduled-start', scheduledAt: date.toISOString() });
+
   do {
     const listed = await env.WATER_REMINDERS.list({ prefix: SUBSCRIPTION_PREFIX, cursor });
     cursor = listed.cursor;
-    await Promise.all(listed.keys.map((key) => sendReminderForKey(env, key.name, date)));
+    totalKeys += listed.keys.length;
+    const results = await Promise.all(listed.keys.map((key) => sendReminderForKey(env, key.name, date, 'scheduled')));
+    totalSent += results.filter((result) => result.sent).length;
   } while (cursor);
+
+  await writeDebug(env, { type: 'scheduled-complete', scheduledAt: date.toISOString(), totalKeys, totalSent });
 }
 
-async function sendReminderForKey(env, key, date) {
-  const record = await readSubscription(env, key);
-  if (!record) return;
+async function sendReminderForKey(env, key, date, source = 'scheduled', force = false) {
+  try {
+    const record = await readSubscription(env, key);
+    if (!record) {
+      await writeDebug(env, { type: 'send-skipped', source, key, reason: 'missing-record' });
+      return { key, sent: false, reason: 'missing-record' };
+    }
 
-  const context = getLocalReminderContext(date, record.timezone);
-  if (!shouldSendReminder(record, context)) return;
+    const context = getLocalReminderContext(date, record.timezone);
+    const allowed = shouldSendReminder(record, context);
+    if (!force && !allowed) {
+      await writeDebug(env, {
+        type: 'send-skipped',
+        source,
+        key,
+        reason: 'rules-blocked',
+        context,
+        todayMl: record.todayMl,
+        lastProgressDate: record.lastProgressDate,
+        timezone: record.timezone
+      });
+      return { key, sent: false, reason: 'rules-blocked', context };
+    }
 
-  const response = await sendWebPush(record.subscription, env);
-  if (response.status === 404 || response.status === 410) {
-    await env.WATER_REMINDERS.delete(key);
+    const response = await sendWebPush(record.subscription, env);
+    const responseText = await response.text();
+    await writeDebug(env, {
+      type: 'send-result',
+      source,
+      key,
+      status: response.status,
+      ok: response.ok,
+      responseText,
+      context,
+      forced: force,
+      endpointOrigin: new URL(record.subscription.endpoint).origin
+    });
+    if (response.status === 404 || response.status === 410) {
+      await env.WATER_REMINDERS.delete(key);
+    }
+    if (response.status === 400 && responseText.includes('VapidPkHashMismatch')) {
+      await env.WATER_REMINDERS.delete(key);
+    }
+    return { key, sent: response.ok, status: response.status, ok: response.ok, responseText, context };
+  } catch (error) {
+    const result = {
+      key,
+      sent: false,
+      reason: 'exception',
+      errorName: error.name,
+      errorMessage: error.message,
+      stack: error.stack?.slice(0, 500) || null
+    };
+    await writeDebug(env, { type: 'send-exception', source, ...result });
+    return result;
   }
+}
+
+async function handleSendTest(env) {
+  const listed = await env.WATER_REMINDERS.list({ prefix: SUBSCRIPTION_PREFIX });
+  const now = new Date();
+  const results = await Promise.all(listed.keys.map((key) => sendReminderForKey(env, key.name, now, 'manual-test', true)));
+  return json({ ok: true, count: listed.keys.length, results }, env);
 }
 
 async function sendWebPush(subscription, env) {

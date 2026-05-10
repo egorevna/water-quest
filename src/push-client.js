@@ -2,6 +2,7 @@ import { PUSH_WORKER_URL } from './push-config.js';
 import { INVITE_STORAGE_KEY, isInviteCodePresent, normalizeInviteCode } from './invite-core.js';
 
 const PUSH_ENDPOINT_KEY = 'water-quest-push-endpoint-v1';
+const VAPID_PUBLIC_KEY_STORAGE_KEY = 'water-quest-vapid-public-key-v1';
 
 export function getPushAvailability() {
   const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -71,12 +72,23 @@ export async function enableReminders(progress) {
 
 export async function ensurePushSubscription(registration, publicKey) {
   const existing = await registration.pushManager.getSubscription();
-  if (existing) return existing;
+  if (existing) {
+    const existingKey = getExistingApplicationServerKey(existing);
+    const savedKey = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
+    const knownKey = existingKey || savedKey;
+    if (knownKey === publicKey) return existing;
 
-  return registration.pushManager.subscribe({
+    await existing.unsubscribe();
+    localStorage.removeItem(PUSH_ENDPOINT_KEY);
+    localStorage.removeItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
+  }
+
+  const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(publicKey)
   });
+  localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, publicKey);
+  return subscription;
 }
 
 export async function disableReminders() {
@@ -91,6 +103,7 @@ export async function disableReminders() {
     await postJson('/unsubscribe', { endpoint });
   }
   localStorage.removeItem(PUSH_ENDPOINT_KEY);
+  localStorage.removeItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
 
   return { ok: true, message: 'Напоминания выключены.' };
 }
@@ -141,4 +154,18 @@ function urlBase64ToUint8Array(value) {
     outputArray[index] = rawData.charCodeAt(index);
   }
   return outputArray;
+}
+
+function getExistingApplicationServerKey(subscription) {
+  const key = subscription.options?.applicationServerKey;
+  if (!key) return '';
+  return uint8ArrayToUrlBase64(new Uint8Array(key));
+}
+
+function uint8ArrayToUrlBase64(bytes) {
+  let rawData = '';
+  for (const byte of bytes) {
+    rawData += String.fromCharCode(byte);
+  }
+  return btoa(rawData).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
