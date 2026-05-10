@@ -1,0 +1,15 @@
+name = "water-quest-push"
+main = "workers/push-worker.js"
+compatibility_date = "2026-05-10"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[[kv_namespaces]]
+binding = "WATER_REMINDERS"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
+[vars]
+ALLOWED_ORIGIN = "https://egorevna.github.io"
+VAPID_PUBLIC_KEY = "PASTE_PUBLIC_KEY_HERE"
+VAPID_SUBJECT = "mailto:egorevna@users.noreply.github.com"

@@ -211,6 +211,50 @@ h2 {
   box-shadow: none;
 }
 
+.reminder-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #202d38;
+  color: white;
+  box-shadow: 0 14px 30px rgba(14, 91, 143, 0.14);
+}
+
+.reminder-panel span {
+  display: block;
+  color: #b8d6e9;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reminder-panel strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.reminder-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.reminder-button {
+  min-height: 48px;
+  border-radius: 15px;
+  background: var(--gold);
+  color: #2b1d08;
+  font-weight: 900;
+}
+
+.reminder-button.secondary {
+  background: #344655;
+  color: #fff;
+}
+
 .streak-panel {
   display: grid;
   grid-template-columns: 1fr 1fr;

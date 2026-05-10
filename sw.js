@@ -1,10 +1,13 @@
-const CACHE_NAME = 'water-quest-v1';
+const CACHE_NAME = 'water-quest-v2';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './src/water-core.js',
+  './src/reminder-rules.js',
+  './src/push-client.js',
+  './src/push-config.js',
   './manifest.webmanifest',
   './icons/icon.svg'
 ];
@@ -29,5 +32,27 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
     caches.match(event.request).then((cached) => cached ?? fetch(event.request))
+  );
+});
+
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    self.registration.showNotification('Water Quest', {
+      body: 'Время воды. Добавь стакан и продолжай квест дня.',
+      icon: './icons/icon.svg',
+      badge: './icons/icon.svg',
+      tag: 'water-quest-hourly-reminder',
+      renotify: true
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((client) => client.url.includes(self.location.origin));
+      return existing ? existing.focus() : self.clients.openWindow('./');
+    })
   );
 });

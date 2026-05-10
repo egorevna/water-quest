@@ -39,3 +39,83 @@ https://YOUR_USERNAME.github.io/water-quest/
 ```
 
 На iPhone открой этот адрес в Safari: `Поделиться` -> `На экран "Домой"` -> `Добавить`.
+
+## Push-напоминания через Cloudflare Workers
+
+Пуши работают только для PWA, добавленного на экран Домой iPhone. Напоминание отправляется каждый час с 07:00 до 21:00 по локальному времени телефона и останавливается на текущий день после 4000 мл.
+
+### 1. Сгенерировать VAPID-ключи
+
+```bash
+npm run vapid
+```
+
+Сохрани оба значения:
+
+```text
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+```
+
+### 2. Подготовить Wrangler config
+
+```bash
+cp workers/wrangler.toml.example wrangler.toml
+```
+
+В `wrangler.toml` замени:
+
+```text
+PASTE_PUBLIC_KEY_HERE
+```
+
+на `VAPID_PUBLIC_KEY`.
+
+### 3. Создать KV namespace
+
+```bash
+npx wrangler login
+npx wrangler kv namespace create WATER_REMINDERS
+```
+
+Wrangler покажет `id`. Вставь его в `wrangler.toml` вместо:
+
+```text
+PASTE_KV_NAMESPACE_ID_HERE
+```
+
+### 4. Добавить приватный ключ как secret
+
+```bash
+npx wrangler secret put VAPID_PRIVATE_KEY
+```
+
+Когда спросит значение, вставь `VAPID_PRIVATE_KEY`.
+
+### 5. Задеплоить Worker
+
+```bash
+npx wrangler deploy
+```
+
+Если Cloudflare выдаст URL не `https://water-quest-push.egorevna.workers.dev`, обнови `src/push-config.js`:
+
+```js
+export const PUSH_WORKER_URL = 'https://ТВОЙ_WORKER_URL';
+```
+
+Потом запушь изменения:
+
+```bash
+git add .
+git commit -m "feat: add push reminders"
+git push
+```
+
+### 6. Включить пуши на iPhone
+
+1. Открой установленный `Water Quest` с экрана Домой.
+2. Нажми `Включить` в блоке `Пуши`.
+3. Разреши уведомления.
+
+Если открыть сайт просто в Safari, iPhone не даст включить Web Push. Нужно именно приложение с экрана Домой.

@@ -7,6 +7,12 @@ import {
   toDateKey,
   undoLastIntake
 } from './src/water-core.js';
+import {
+  disableReminders,
+  enableReminders,
+  getReminderStatus,
+  syncReminderProgress
+} from './src/push-client.js';
 
 const STORAGE_KEY = 'water-quest-state-v1';
 const todayKey = toDateKey(new Date());
@@ -25,6 +31,9 @@ const elements = {
   weekBar: document.querySelector('#week-bar'),
   monthBar: document.querySelector('#month-bar'),
   undoButton: document.querySelector('#undo-button'),
+  reminderStatus: document.querySelector('#reminder-status'),
+  enableReminders: document.querySelector('#enable-reminders'),
+  disableReminders: document.querySelector('#disable-reminders'),
   statsToggle: document.querySelector('#stats-toggle'),
   statsPanel: document.querySelector('#stats-panel'),
   daysGrid: document.querySelector('#days-grid')
@@ -35,6 +44,7 @@ document.querySelectorAll('[data-amount]').forEach((button) => {
     state = addIntake(state, todayKey, Number(button.dataset.amount));
     saveState(state);
     render();
+    syncProgress();
   });
 });
 
@@ -42,14 +52,36 @@ elements.undoButton.addEventListener('click', () => {
   state = undoLastIntake(state, todayKey);
   saveState(state);
   render();
+  syncProgress();
 });
 
 elements.statsToggle.addEventListener('click', () => {
   elements.statsPanel.classList.toggle('hidden');
 });
 
+elements.enableReminders.addEventListener('click', async () => {
+  await updateReminderStatus('Запрашиваю разрешение...');
+  try {
+    const result = await enableReminders(getProgressPayload());
+    await updateReminderStatus(result.message);
+    if (result.ok) await syncProgress();
+  } catch (error) {
+    await updateReminderStatus(`Не получилось включить: ${error.message}`);
+  }
+});
+
+elements.disableReminders.addEventListener('click', async () => {
+  try {
+    const result = await disableReminders();
+    await updateReminderStatus(result.message);
+  } catch (error) {
+    await updateReminderStatus(`Не получилось выключить: ${error.message}`);
+  }
+});
+
 render();
 registerServiceWorker();
+updateReminderStatus();
 
 function render() {
   const summary = buildSummary(state, todayKey);
@@ -104,6 +136,25 @@ function renderRecentDays() {
       return node;
     })
   );
+}
+
+function getProgressPayload() {
+  return {
+    dateKey: todayKey,
+    todayMl: getDay(state, todayKey).totalMl
+  };
+}
+
+async function syncProgress() {
+  try {
+    await syncReminderProgress(getProgressPayload());
+  } catch {
+    await updateReminderStatus('Прогресс сохранён на телефоне, но пуш-сервер сейчас недоступен.');
+  }
+}
+
+async function updateReminderStatus(message) {
+  elements.reminderStatus.textContent = message || await getReminderStatus();
 }
 
 function loadState() {
