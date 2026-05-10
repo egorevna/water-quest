@@ -1,6 +1,7 @@
 import { getLocalReminderContext, shouldSendReminder } from '../src/reminder-rules.js';
 
 const SUBSCRIPTION_PREFIX = 'sub:';
+const DEBUG_KEY = 'debug:last-event';
 const DAILY_GOAL_ML = 4000;
 const REMINDER_START_HOUR = 7;
 const REMINDER_END_HOUR = 21;
@@ -15,6 +16,10 @@ export default {
     try {
       if (request.method === 'GET' && url.pathname === '/vapid-public-key') {
         return json({ publicKey: env.VAPID_PUBLIC_KEY }, env);
+      }
+
+      if (request.method === 'GET' && url.pathname === '/debug') {
+        return handleDebug(env);
       }
 
       if (request.method === 'POST' && url.pathname === '/validate-invite') {
@@ -51,7 +56,14 @@ async function handleValidateInvite(request, env) {
 
 async function handleSubscribe(request, env) {
   const body = await request.json();
+  await writeDebug(env, {
+    type: 'subscribe-attempt',
+    hasInviteCode: Boolean(body.inviteCode),
+    hasSubscription: Boolean(body.subscription),
+    endpointPrefix: body.subscription?.endpoint?.slice(0, 48) || null
+  });
   if (!isValidInvite(body.inviteCode, env)) {
+    await writeDebug(env, { type: 'subscribe-rejected', reason: 'invalid invite code' });
     return json({ error: 'invalid invite code' }, env, 403);
   }
   validateSubscription(body.subscription);
@@ -71,6 +83,7 @@ async function handleSubscribe(request, env) {
   };
 
   await env.WATER_REMINDERS.put(key, JSON.stringify(record));
+  await writeDebug(env, { type: 'subscribe-saved', key, timezone: record.timezone, todayMl: record.todayMl });
   return json({ ok: true }, env);
 }
 
@@ -80,6 +93,12 @@ function isValidInvite(inviteCode, env) {
 
 async function handleProgress(request, env) {
   const body = await request.json();
+  await writeDebug(env, {
+    type: 'progress-attempt',
+    hasEndpoint: Boolean(body.endpoint),
+    dateKey: body.dateKey || null,
+    todayMl: body.todayMl ?? null
+  });
   if (!body.endpoint || !body.dateKey) {
     return json({ error: 'endpoint and dateKey are required' }, env, 400);
   }
@@ -95,6 +114,19 @@ async function handleProgress(request, env) {
   await env.WATER_REMINDERS.put(key, JSON.stringify(existing));
 
   return json({ ok: true }, env);
+}
+
+async function handleDebug(env) {
+  const keys = await env.WATER_REMINDERS.list({ prefix: SUBSCRIPTION_PREFIX });
+  const lastEvent = await env.WATER_REMINDERS.get(DEBUG_KEY, 'json');
+  return json({ subscriptionCount: keys.keys.length, keys: keys.keys.map((key) => key.name), lastEvent }, env);
+}
+
+async function writeDebug(env, data) {
+  await env.WATER_REMINDERS.put(DEBUG_KEY, JSON.stringify({
+    ...data,
+    at: new Date().toISOString()
+  }));
 }
 
 async function handleUnsubscribe(request, env) {

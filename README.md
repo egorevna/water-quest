@@ -2,6 +2,37 @@
 
 PWA счетчик воды для iPhone: дневная цель 4 литра, быстрые добавления 300/400/500 мл, история в `localStorage`, серия успешных дней, промежуточная победа за 7 дней подряд и суперкубок за 30 дней подряд.
 
+Production URL:
+
+```text
+https://egorevna.github.io/water-quest/
+```
+
+Worker URL:
+
+```text
+https://water-quest-push.egorevna-water.workers.dev
+```
+
+## Current Checkpoint
+
+Detailed checkpoint files:
+
+- `PROJECT_STATE.md`: current facts, working state, known gaps, blocker, next step.
+- `TODO.md`: immediate and follow-up tasks.
+- `ARCHITECTURE.md`: frontend, Worker, KV, and data flow.
+- `CHANGELOG.md`: project history.
+
+Current main blocker: iPhone push delivery is not yet confirmed after subscription registration. Worker `/debug` reports one subscription and latest progress, but the next hourly push still needs to be observed.
+
+Temporary diagnostic endpoint:
+
+```text
+https://water-quest-push.egorevna-water.workers.dev/debug
+```
+
+Remove or protect this endpoint after push delivery is confirmed.
+
 ## Локальный запуск
 
 ```bash
@@ -129,3 +160,38 @@ git push
 3. Разреши уведомления.
 
 Если открыть сайт просто в Safari, iPhone не даст включить Web Push. Нужно именно приложение с экрана Домой.
+
+## Verification
+
+Run local tests:
+
+```bash
+npm test
+```
+
+Run syntax checks for key JavaScript files:
+
+```bash
+node --check app.js
+node --check sw.js
+node --check src/push-client.js
+node --check workers/push-worker.js
+```
+
+## Current Known Status
+
+Works:
+
+- Water tracking and local history.
+- Installed PWA shell and offline cache.
+- Invite code validation.
+- Push subscription/progress sync path as observed by Worker `/debug`.
+
+Not yet proven:
+
+- Actual scheduled iPhone notification delivery from Cloudflare cron.
+- Push stop after syncing 4000 ml.
+
+Next step:
+
+Wait for the next top-of-hour cron while `todayMl < 4000`. If no push arrives, add delivery-result logging around `sendWebPush()` in `workers/push-worker.js`.
