@@ -1,0 +1,17 @@
+{
+  "name": "Water Quest",
+  "short_name": "Water Quest",
+  "description": "PWA счетчик воды с дневными, недельными и месячными победами.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff7e3",
+  "theme_color": "#0f83d1",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
