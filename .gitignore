@@ -1,4 +1,6 @@
 .DS_Store
 .superpowers/
+.wrangler/
+wrangler.toml
 node_modules/
 npm-debug.log*
