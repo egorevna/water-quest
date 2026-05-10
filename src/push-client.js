@@ -56,10 +56,7 @@ export async function enableReminders(progress) {
 
   const registration = await navigator.serviceWorker.ready;
   const { publicKey } = await requestJson('/vapid-public-key');
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(publicKey)
-  });
+  const subscription = await ensurePushSubscription(registration, publicKey);
 
   await postJson('/subscribe', {
     inviteCode,
@@ -70,6 +67,16 @@ export async function enableReminders(progress) {
 
   localStorage.setItem(PUSH_ENDPOINT_KEY, subscription.endpoint);
   return { ok: true, message: 'Напоминания включены: каждый час с 07:00 до 21:00.' };
+}
+
+export async function ensurePushSubscription(registration, publicKey) {
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) return existing;
+
+  return registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(publicKey)
+  });
 }
 
 export async function disableReminders() {
