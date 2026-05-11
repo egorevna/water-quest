@@ -33,6 +33,7 @@ Water Quest is a GitHub Pages hosted iPhone PWA for tracking daily water intake.
 - App UI renders on GitHub Pages.
 - Installed PWA keeps water totals in `localStorage`.
 - Closing or swiping the app out of memory does not reset data.
+- Active day now refreshes after midnight without deleting history.
 - Daily goal and streak logic are covered by tests.
 - Invite code validation works against Cloudflare Worker.
 - PWA can sync progress to Worker after invite and push enable flow.
@@ -55,3 +56,7 @@ Confirm that Cloudflare scheduled cron actually sends a Web Push notification to
 ## Next Concrete Step
 
 Wait for the next top-of-hour cron run while today's synced total is below 4000 ml. If no push arrives within a few minutes after the hour, inspect Worker diagnostics/logs for the scheduled run and add delivery-result logging for `sendWebPush()` response status.
+
+## Latest Bugfix Note
+
+On 2026-05-11, the installed PWA did not reset the visible counter at the start of a new day because `app.js` previously computed `todayKey` once at module load. The fix introduced `src/day-session.js` and dynamic refresh hooks so the app switches from yesterday's key to today's key while preserving yesterday's history.

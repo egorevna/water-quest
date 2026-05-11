@@ -2,6 +2,10 @@
 
 ## 2026-05-10
 
+### Fixed
+
+- Fixed active-day rollover in an installed PWA that stays open across midnight. The app now refreshes the current date on focus, visibility return, every minute, and before water/reminder actions, so a new day starts at 0 ml without reinstalling or manually clearing data.
+
 ### Added
 
 - Created Water Quest PWA for iPhone.

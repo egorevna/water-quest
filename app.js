@@ -7,6 +7,7 @@ import {
   toDateKey,
   undoLastIntake
 } from './src/water-core.js';
+import { createDaySession } from './src/day-session.js';
 import {
   disableReminders,
   enableReminders,
@@ -17,7 +18,7 @@ import {
 } from './src/push-client.js';
 
 const STORAGE_KEY = 'water-quest-state-v1';
-const todayKey = toDateKey(new Date());
+const daySession = createDaySession(() => toDateKey(new Date()));
 
 let state = loadState();
 
@@ -62,6 +63,8 @@ elements.inviteForm.addEventListener('submit', async (event) => {
 
 document.querySelectorAll('[data-amount]').forEach((button) => {
   button.addEventListener('click', () => {
+    refreshDayIfNeeded();
+    const todayKey = daySession.getTodayKey();
     state = addIntake(state, todayKey, Number(button.dataset.amount));
     saveState(state);
     render();
@@ -70,6 +73,8 @@ document.querySelectorAll('[data-amount]').forEach((button) => {
 });
 
 elements.undoButton.addEventListener('click', () => {
+  refreshDayIfNeeded();
+  const todayKey = daySession.getTodayKey();
   state = undoLastIntake(state, todayKey);
   saveState(state);
   render();
@@ -81,6 +86,7 @@ elements.statsToggle.addEventListener('click', () => {
 });
 
 elements.enableReminders.addEventListener('click', async () => {
+  refreshDayIfNeeded();
   await updateReminderStatus('Запрашиваю разрешение...');
   try {
     const result = await enableReminders(getProgressPayload());
@@ -104,8 +110,14 @@ render();
 registerServiceWorker();
 updateReminderStatus();
 renderInviteGate();
+window.addEventListener('focus', refreshDayIfNeeded);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshDayIfNeeded();
+});
+setInterval(refreshDayIfNeeded, 60 * 1000);
 
 function render() {
+  const todayKey = daySession.getTodayKey();
   const summary = buildSummary(state, todayKey);
   const today = getDay(state, todayKey);
 
@@ -149,6 +161,7 @@ function renderReward(summary) {
 }
 
 function renderRecentDays() {
+  const todayKey = daySession.getTodayKey();
   elements.daysGrid.replaceChildren(
     ...getRecentDays(state, todayKey, 30).reverse().map((day) => {
       const node = document.createElement('div');
@@ -161,10 +174,20 @@ function renderRecentDays() {
 }
 
 function getProgressPayload() {
+  const todayKey = daySession.getTodayKey();
   return {
     dateKey: todayKey,
     todayMl: getDay(state, todayKey).totalMl
   };
+}
+
+function refreshDayIfNeeded() {
+  const result = daySession.refreshTodayKey();
+  if (!result.changed) return false;
+
+  render();
+  syncProgress();
+  return true;
 }
 
 async function syncProgress() {
