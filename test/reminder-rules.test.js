@@ -25,6 +25,12 @@ test('stops reminders when the current day has reached four liters', () => {
   assert.equal(shouldSendReminder(subscription, { localHour: 12, localDateKey: '2026-05-10' }), false);
 });
 
+test('stops reminders at a selected custom daily goal', () => {
+  const subscription = { ...baseSubscription, dailyGoalMl: 3500, todayMl: 3500 };
+
+  assert.equal(shouldSendReminder(subscription, { localHour: 12, localDateKey: '2026-05-10' }), false);
+});
+
 test('treats stale progress from a previous date as zero for the new local day', () => {
   const subscription = { ...baseSubscription, lastProgressDate: '2026-05-09', todayMl: 4000 };
 

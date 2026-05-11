@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-05-11
+
+### Added
+
+- Added a daily goal selector with 3 l, 3.5 l, and 4 l options.
+- Added localStorage persistence for the selected goal under `water-quest-daily-goal-ml-v1`.
+- Added Worker progress sync for `dailyGoalMl`, so reminders stop at the selected goal.
+
+### Changed
+
+- Recalculated today percent, remaining water, daily victory, streaks, and last-30-days success markers from the selected goal.
+- Updated service worker cache to `water-quest-v6` so installed PWAs pick up the goal selector assets.
+
 ## 2026-05-10
 
 ### Fixed

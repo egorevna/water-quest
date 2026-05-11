@@ -1,6 +1,6 @@
 # Project State
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 ## Summary
 
@@ -9,7 +9,7 @@ Water Quest is a GitHub Pages hosted iPhone PWA for tracking daily water intake.
 ## What Changed
 
 - Built the core PWA:
-  - 4 liter daily goal.
+  - Selectable 3 / 3.5 / 4 liter daily goal.
   - Quick add buttons for 300 ml, 400 ml, and 500 ml.
   - Undo last intake.
   - Last 30 days statistics.
@@ -27,6 +27,7 @@ Water Quest is a GitHub Pages hosted iPhone PWA for tracking daily water intake.
   - App UI and push subscription require a valid invite code.
 - Added temporary Worker diagnostics:
   - `GET /debug` returns subscription count and the last subscribe/progress event.
+- Added selected-goal sync to the Worker so hourly reminders stop at the active daily target, not only at 4000 ml.
 
 ## What Works
 
@@ -34,7 +35,8 @@ Water Quest is a GitHub Pages hosted iPhone PWA for tracking daily water intake.
 - Installed PWA keeps water totals in `localStorage`.
 - Closing or swiping the app out of memory does not reset data.
 - Active day now refreshes after midnight without deleting history.
-- Daily goal and streak logic are covered by tests.
+- Daily goal, progress percent, victory, and streak logic are covered by tests.
+- Changing the daily goal during the day keeps the same water history and recalculates the visible percent/reward immediately.
 - Invite code validation works against Cloudflare Worker.
 - PWA can sync progress to Worker after invite and push enable flow.
 - Worker `/debug` currently reports one subscription and the latest progress event:
@@ -55,8 +57,12 @@ Confirm that Cloudflare scheduled cron actually sends a Web Push notification to
 
 ## Next Concrete Step
 
-Wait for the next top-of-hour cron run while today's synced total is below 4000 ml. If no push arrives within a few minutes after the hour, inspect Worker diagnostics/logs for the scheduled run and add delivery-result logging for `sendWebPush()` response status.
+Wait for the next top-of-hour cron run while today's synced total is below the selected daily goal. If no push arrives within a few minutes after the hour, inspect Worker diagnostics/logs for the scheduled run and add delivery-result logging for `sendWebPush()` response status.
 
 ## Latest Bugfix Note
 
 On 2026-05-11, the installed PWA did not reset the visible counter at the start of a new day because `app.js` previously computed `todayKey` once at module load. The fix introduced `src/day-session.js` and dynamic refresh hooks so the app switches from yesterday's key to today's key while preserving yesterday's history.
+
+## Latest Feature Note
+
+On 2026-05-11, the app gained a daily goal selector with 3 l, 3.5 l, and 4 l options. The selected goal is stored in `localStorage` under `water-quest-daily-goal-ml-v1`; history remains stored as raw milliliters per day, so changing the goal recalculates percentages and rewards without rewriting past intake data.

@@ -52,6 +52,7 @@ The state shape is:
 
 Invite and push client state:
 
+- `water-quest-daily-goal-ml-v1`: selected daily target, one of `3000`, `3500`, or `4000`.
 - `water-quest-invite-v1`: accepted invite code stored locally.
 - `water-quest-push-endpoint-v1`: saved PushSubscription endpoint.
 
@@ -62,13 +63,14 @@ Pure modules:
 - `src/water-core.js`
   - adding intake;
   - undo;
-  - daily victory;
+  - selectable daily goal options: 3 l, 3.5 l, 4 l;
+  - daily victory against the selected goal;
   - current and best streak;
   - 7-day and 30-day progress;
   - recent-day stats.
 - `src/reminder-rules.js`
   - reminder window from 07:00 through 21:00;
-  - stop sending once current local day has 4000 ml;
+  - stop sending once current local day has the selected daily goal;
   - treat stale progress from another date as 0 ml for the new day.
 - `src/invite-core.js`
   - invite code trimming and minimum length check.
@@ -96,8 +98,8 @@ Endpoints:
 
 - `GET /vapid-public-key`: returns VAPID public key.
 - `POST /validate-invite`: validates invite code against secret `INVITE_CODE`.
-- `POST /subscribe`: stores a valid PushSubscription in KV.
-- `POST /progress`: updates `todayMl`, `dateKey`, and timezone for an endpoint.
+- `POST /subscribe`: stores a valid PushSubscription in KV, including the current selected daily goal.
+- `POST /progress`: updates `todayMl`, `dateKey`, selected `dailyGoalMl`, and timezone for an endpoint.
 - `POST /unsubscribe`: removes a subscription by endpoint.
 - `GET /debug`: temporary diagnostic endpoint for subscription count and last event.
 

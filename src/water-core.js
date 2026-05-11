@@ -1,3 +1,4 @@
+export const DAILY_GOAL_OPTIONS_ML = [3000, 3500, 4000];
 export const DAILY_GOAL_ML = 4000;
 export const WEEK_STREAK_DAYS = 7;
 export const SUPER_CUP_DAYS = 30;
@@ -44,33 +45,34 @@ export function undoLastIntake(state, dateKey) {
   };
 }
 
-export function isSuccessfulDay(day) {
-  return day.totalMl >= DAILY_GOAL_ML;
+export function isSuccessfulDay(day, dailyGoalMl = DAILY_GOAL_ML) {
+  return day.totalMl >= dailyGoalMl;
 }
 
-export function buildSummary(state, todayKey = toDateKey(new Date())) {
+export function buildSummary(state, todayKey = toDateKey(new Date()), dailyGoalMl = DAILY_GOAL_ML) {
   const today = getDay(state, todayKey);
-  const currentStreak = countCurrentStreak(state, todayKey);
-  const bestStreak = countBestStreak(state);
+  const currentStreak = countCurrentStreak(state, todayKey, dailyGoalMl);
+  const bestStreak = countBestStreak(state, dailyGoalMl);
   const todayMl = today.totalMl;
-  const todayPercent = Math.min(100, Math.round((todayMl / DAILY_GOAL_ML) * 100));
+  const todayPercent = Math.min(100, Math.round((todayMl / dailyGoalMl) * 100));
 
   return {
+    dailyGoalMl,
     todayMl,
     todayLiters: todayMl / 1000,
     todayPercent,
-    remainingMl: Math.max(0, DAILY_GOAL_ML - todayMl),
+    remainingMl: Math.max(0, dailyGoalMl - todayMl),
     currentStreak,
     bestStreak,
     weekProgress: Math.min(WEEK_STREAK_DAYS, currentStreak),
     monthProgress: Math.min(SUPER_CUP_DAYS, currentStreak),
-    hasDailyVictory: isSuccessfulDay(today),
+    hasDailyVictory: isSuccessfulDay(today, dailyGoalMl),
     hasWeeklyVictory: currentStreak >= WEEK_STREAK_DAYS,
     hasSuperCup: currentStreak >= SUPER_CUP_DAYS
   };
 }
 
-export function getRecentDays(state, todayKey = toDateKey(new Date()), count = 30) {
+export function getRecentDays(state, todayKey = toDateKey(new Date()), count = 30, dailyGoalMl = DAILY_GOAL_ML) {
   const dates = [];
   let cursor = parseDateKey(todayKey);
   for (let index = 0; index < count; index += 1) {
@@ -79,7 +81,7 @@ export function getRecentDays(state, todayKey = toDateKey(new Date()), count = 3
     dates.push({
       dateKey,
       totalMl: day.totalMl,
-      successful: isSuccessfulDay(day)
+      successful: isSuccessfulDay(day, dailyGoalMl)
     });
     cursor = addDays(cursor, -1);
   }
@@ -93,11 +95,11 @@ export function toDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
-function countCurrentStreak(state, todayKey) {
+function countCurrentStreak(state, todayKey, dailyGoalMl) {
   let streak = 0;
   let cursor = parseDateKey(todayKey);
 
-  while (isSuccessfulDay(getDay(state, toDateKey(cursor)))) {
+  while (isSuccessfulDay(getDay(state, toDateKey(cursor)), dailyGoalMl)) {
     streak += 1;
     cursor = addDays(cursor, -1);
   }
@@ -105,9 +107,9 @@ function countCurrentStreak(state, todayKey) {
   return streak;
 }
 
-function countBestStreak(state) {
+function countBestStreak(state, dailyGoalMl) {
   const successfulDates = Object.keys(state.days ?? {})
-    .filter((dateKey) => isSuccessfulDay(getDay(state, dateKey)))
+    .filter((dateKey) => isSuccessfulDay(getDay(state, dateKey), dailyGoalMl))
     .sort();
 
   let best = 0;

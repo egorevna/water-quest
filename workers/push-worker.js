@@ -79,7 +79,7 @@ async function handleSubscribe(request, env) {
     timezone: body.timezone || 'UTC',
     quietStartHour: REMINDER_START_HOUR,
     quietEndHour: REMINDER_END_HOUR,
-    dailyGoalMl: DAILY_GOAL_ML,
+    dailyGoalMl: normalizeDailyGoalMl(body.progress?.dailyGoalMl),
     lastProgressDate: body.progress?.dateKey || null,
     todayMl: Number(body.progress?.todayMl || 0),
     createdAt: new Date().toISOString(),
@@ -101,7 +101,8 @@ async function handleProgress(request, env) {
     type: 'progress-attempt',
     hasEndpoint: Boolean(body.endpoint),
     dateKey: body.dateKey || null,
-    todayMl: body.todayMl ?? null
+    todayMl: body.todayMl ?? null,
+    dailyGoalMl: body.dailyGoalMl ?? null
   });
   if (!body.endpoint || !body.dateKey) {
     return json({ error: 'endpoint and dateKey are required' }, env, 400);
@@ -113,11 +114,17 @@ async function handleProgress(request, env) {
 
   existing.lastProgressDate = body.dateKey;
   existing.todayMl = Number(body.todayMl || 0);
+  existing.dailyGoalMl = normalizeDailyGoalMl(body.dailyGoalMl, existing.dailyGoalMl);
   existing.timezone = body.timezone || existing.timezone || 'UTC';
   existing.updatedAt = new Date().toISOString();
   await env.WATER_REMINDERS.put(key, JSON.stringify(existing));
 
   return json({ ok: true }, env);
+}
+
+function normalizeDailyGoalMl(value, fallback = DAILY_GOAL_ML) {
+  const goalMl = Number(value);
+  return [3000, 3500, 4000].includes(goalMl) ? goalMl : fallback;
 }
 
 async function handleDebug(env) {
@@ -176,6 +183,7 @@ async function sendReminderForKey(env, key, date, source = 'scheduled', force = 
         reason: 'rules-blocked',
         context,
         todayMl: record.todayMl,
+        dailyGoalMl: record.dailyGoalMl,
         lastProgressDate: record.lastProgressDate,
         timezone: record.timezone
       });

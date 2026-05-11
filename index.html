@@ -39,6 +39,15 @@
 
         <div class="reward-banner" id="reward-banner" aria-live="polite"></div>
 
+        <div class="goal-selector" aria-label="Суточная цель">
+          <span>Цель дня</span>
+          <div class="goal-options">
+            <button type="button" data-goal="3000" aria-pressed="false">3 л</button>
+            <button type="button" data-goal="3500" aria-pressed="false">3.5 л</button>
+            <button type="button" data-goal="4000" aria-pressed="true">4 л</button>
+          </div>
+        </div>
+
         <div class="tank-wrap" aria-label="Прогресс воды за сегодня">
           <div class="tank">
             <div class="water" id="water-level"></div>
@@ -98,7 +107,7 @@
       <section class="stats-panel hidden" id="stats-panel" aria-label="Статистика за 30 дней">
         <div class="panel-heading">
           <h2>Последние 30 дней</h2>
-          <p>Золотые клетки — дни с 4 литрами или больше.</p>
+          <p>Золотые клетки — дни, где цель была взята.</p>
         </div>
         <div class="days-grid" id="days-grid"></div>
       </section>

@@ -2,7 +2,7 @@
 
 ## Now
 
-- [ ] Confirm the next hourly push arrives on iPhone while today's total is below 4000 ml.
+- [ ] Confirm the next hourly push arrives on iPhone while today's total is below the selected daily goal.
 - [ ] If no push arrives, add scheduled-send diagnostics:
   - log when cron runs;
   - log local time window decision;
@@ -12,7 +12,7 @@
 
 ## Before Calling Push Done
 
-- [ ] Confirm push stops after the app syncs 4000 ml for the current date.
+- [ ] Confirm push stops after the app syncs the selected daily goal for the current date.
 - [ ] Confirm push resumes the next local day when today's progress is treated as 0 ml.
 - [ ] Remove or protect public `/debug`.
 - [ ] Remove `debug:last-event` from KV if it is no longer needed.
@@ -23,6 +23,7 @@
 - [ ] Add a "send test reminder" admin/debug-only endpoint or local test button.
 - [ ] Add clearer iPhone instructions for refreshing an installed PWA after deploy.
 - [ ] Consider exporting/importing local water history before changing storage model.
+- [ ] Consider whether historical streaks should use today's selected goal or each day's saved goal if per-day goals become important later.
 
 ## Maintenance
 

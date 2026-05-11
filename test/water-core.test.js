@@ -33,6 +33,35 @@ test('marks a day successful only at four liters or more', () => {
   assert.equal(isSuccessfulDay({ totalMl: DAILY_GOAL_ML, additions: [] }), true);
 });
 
+test('marks a day successful against a custom daily goal', () => {
+  assert.equal(isSuccessfulDay({ totalMl: 3499, additions: [] }, 3500), false);
+  assert.equal(isSuccessfulDay({ totalMl: 3500, additions: [] }, 3500), true);
+});
+
+test('recalculates today percent and victory against a custom daily goal', () => {
+  const state = addIntake(createEmptyState(), '2026-05-11', 3000);
+
+  const summary = buildSummary(state, '2026-05-11', 3000);
+
+  assert.equal(summary.todayPercent, 100);
+  assert.equal(summary.remainingMl, 0);
+  assert.equal(summary.dailyGoalMl, 3000);
+  assert.equal(summary.hasDailyVictory, true);
+});
+
+test('changing the daily goal recalculates the same intake without changing history', () => {
+  const state = addIntake(createEmptyState(), '2026-05-11', 3000);
+
+  const fourLiterSummary = buildSummary(state, '2026-05-11', 4000);
+  const threeLiterSummary = buildSummary(state, '2026-05-11', 3000);
+
+  assert.equal(getDay(state, '2026-05-11').totalMl, 3000);
+  assert.equal(fourLiterSummary.todayPercent, 75);
+  assert.equal(fourLiterSummary.hasDailyVictory, false);
+  assert.equal(threeLiterSummary.todayPercent, 100);
+  assert.equal(threeLiterSummary.hasDailyVictory, true);
+});
+
 test('builds streak, best streak, and reward progress from consecutive successful days', () => {
   let state = createEmptyState();
   for (const date of ['2026-05-04', '2026-05-05', '2026-05-06', '2026-05-07', '2026-05-08', '2026-05-09', '2026-05-10']) {

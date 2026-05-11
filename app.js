@@ -1,4 +1,6 @@
 import {
+  DAILY_GOAL_ML,
+  DAILY_GOAL_OPTIONS_ML,
   addIntake,
   buildSummary,
   createEmptyState,
@@ -18,9 +20,11 @@ import {
 } from './src/push-client.js';
 
 const STORAGE_KEY = 'water-quest-state-v1';
+const GOAL_STORAGE_KEY = 'water-quest-daily-goal-ml-v1';
 const daySession = createDaySession(() => toDateKey(new Date()));
 
 let state = loadState();
+let dailyGoalMl = loadDailyGoalMl();
 
 const elements = {
   inviteGate: document.querySelector('#invite-gate'),
@@ -31,6 +35,7 @@ const elements = {
   waterLevel: document.querySelector('#water-level'),
   todayPercent: document.querySelector('#today-percent'),
   todayLiters: document.querySelector('#today-liters'),
+  goalButtons: document.querySelectorAll('[data-goal]'),
   currentStreak: document.querySelector('#current-streak'),
   bestStreak: document.querySelector('#best-streak'),
   weekProgress: document.querySelector('#week-progress'),
@@ -59,6 +64,15 @@ elements.inviteForm.addEventListener('submit', async (event) => {
   } catch (error) {
     elements.inviteStatus.textContent = `Не получилось проверить код: ${error.message}`;
   }
+});
+
+elements.goalButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    dailyGoalMl = Number(button.dataset.goal);
+    saveDailyGoalMl(dailyGoalMl);
+    render();
+    syncProgress();
+  });
 });
 
 document.querySelectorAll('[data-amount]').forEach((button) => {
@@ -118,12 +132,12 @@ setInterval(refreshDayIfNeeded, 60 * 1000);
 
 function render() {
   const todayKey = daySession.getTodayKey();
-  const summary = buildSummary(state, todayKey);
+  const summary = buildSummary(state, todayKey, dailyGoalMl);
   const today = getDay(state, todayKey);
 
   elements.waterLevel.style.height = `${summary.todayPercent}%`;
   elements.todayPercent.textContent = `${summary.todayPercent}%`;
-  elements.todayLiters.textContent = `${formatLiters(summary.todayMl)} / 4 л`;
+  elements.todayLiters.textContent = `${formatLiters(summary.todayMl)} / ${formatLiters(summary.dailyGoalMl)}`;
   elements.currentStreak.textContent = pluralDays(summary.currentStreak);
   elements.bestStreak.textContent = String(summary.bestStreak);
   elements.weekProgress.textContent = `${summary.weekProgress}/7`;
@@ -132,6 +146,7 @@ function render() {
   elements.monthBar.style.width = `${(summary.monthProgress / 30) * 100}%`;
   elements.undoButton.disabled = today.additions.length === 0;
 
+  renderGoalButtons();
   renderReward(summary);
   renderRecentDays();
 }
@@ -153,7 +168,7 @@ function renderReward(summary) {
 
   if (summary.hasDailyVictory) {
     elements.rewardBanner.classList.add('daily');
-    elements.rewardBanner.textContent = 'Победа дня! 4 литра взяты. Завтра серия продолжится.';
+    elements.rewardBanner.textContent = `Победа дня! ${formatLiters(summary.dailyGoalMl)} взяты. Завтра серия продолжится.`;
     return;
   }
 
@@ -163,7 +178,7 @@ function renderReward(summary) {
 function renderRecentDays() {
   const todayKey = daySession.getTodayKey();
   elements.daysGrid.replaceChildren(
-    ...getRecentDays(state, todayKey, 30).reverse().map((day) => {
+    ...getRecentDays(state, todayKey, 30, dailyGoalMl).reverse().map((day) => {
       const node = document.createElement('div');
       node.className = `day-dot${day.successful ? ' success' : ''}${day.dateKey === todayKey ? ' today' : ''}`;
       node.title = `${day.dateKey}: ${formatLiters(day.totalMl)}`;
@@ -177,7 +192,8 @@ function getProgressPayload() {
   const todayKey = daySession.getTodayKey();
   return {
     dateKey: todayKey,
-    todayMl: getDay(state, todayKey).totalMl
+    todayMl: getDay(state, todayKey).totalMl,
+    dailyGoalMl
   };
 }
 
@@ -220,6 +236,23 @@ function loadState() {
 
 function saveState(nextState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+}
+
+function loadDailyGoalMl() {
+  const savedGoalMl = Number(localStorage.getItem(GOAL_STORAGE_KEY));
+  return DAILY_GOAL_OPTIONS_ML.includes(savedGoalMl) ? savedGoalMl : DAILY_GOAL_ML;
+}
+
+function saveDailyGoalMl(nextGoalMl) {
+  localStorage.setItem(GOAL_STORAGE_KEY, String(nextGoalMl));
+}
+
+function renderGoalButtons() {
+  elements.goalButtons.forEach((button) => {
+    const selected = Number(button.dataset.goal) === dailyGoalMl;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
 }
 
 function formatLiters(amountMl) {
