@@ -1,9 +1,9 @@
-const CACHE_NAME = 'water-quest-v6';
+const CACHE_NAME = 'water-quest-v7';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css',
-  './app.js',
+  './styles.css?v=7',
+  './app.js?v=7',
   './src/water-core.js',
   './src/day-session.js',
   './src/reminder-rules.js',

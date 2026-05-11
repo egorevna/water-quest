@@ -2,6 +2,10 @@
 
 ## 2026-05-11
 
+### Fixed
+
+- Added versioned `styles.css` and `app.js` URLs to prevent installed iPhone PWAs from mixing a fresh HTML shell with stale cached CSS/JS.
+
 ### Added
 
 - Added a daily goal selector with 3 l, 3.5 l, and 4 l options.
